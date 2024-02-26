@@ -278,6 +278,7 @@ fun divideMainKey(key: StringBuilder): MutableList<StringBuilder> {
 
     return halves
 }
+
 fun divideBloc(key: String): MutableList<StringBuilder> {
     val halves = mutableListOf<StringBuilder>()
 
