@@ -18,12 +18,6 @@ fun main() {
 
     val plainTextBinary = StringBuilder(hexToBinary(plainText!!))
 
-    if (plainTextBinary.length != 8) {
-        println("Message must be of 8-bit")
-
-        return
-    }
-
     if (plainTextBinary.length % 8 != 0) {
         var i = 0
 
