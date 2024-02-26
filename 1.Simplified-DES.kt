@@ -1,3 +1,163 @@
+fun main() {
+    val s0 = arrayOf(
+        arrayOf(1, 0, 3, 2),
+        arrayOf(3, 2, 1, 0),
+        arrayOf(0, 2, 1, 3),
+        arrayOf(3, 1, 3, 2)
+    )
+
+    val s1 = arrayOf(
+        arrayOf(0, 1, 2, 3),
+        arrayOf(2, 0, 1, 3),
+        arrayOf(3, 0, 1, 0),
+        arrayOf(2, 1, 0, 3)
+    )
+
+    println("Plaintext message (Hex) > ")
+    val plainText = readlnOrNull()
+
+    val plainTextBinary = StringBuilder(hexToBinary(plainText!!))
+
+    if (plainTextBinary.length != 8) {
+        println("Message must be of 8-bit")
+
+        return
+    }
+
+    if (plainTextBinary.length % 8 != 0) {
+        var i = 0
+
+        while (plainTextBinary.length % 8 != 0) {
+            plainTextBinary.append("0000")
+
+            i++
+        }
+    }
+
+    println("Encryption key (Binary) > ")
+    // 10-bit original key
+    val encKeyBinary = readlnOrNull()
+
+    // 10-bit -> p10
+    val p10 = p10(encKeyBinary!!)
+
+    // divide p10
+    val mainKeyHalves = divideMainKey(p10)
+    val l = mainKeyHalves[0]
+    val r = mainKeyHalves[1]
+
+    // shift halves by 1
+    val leftShifted = oneLeftShift(l)
+    val rightShifted = oneLeftShift(r)
+
+    val p10Shifted = leftShifted.append(rightShifted)
+
+    // shifted halves -> p8
+    val k1 = p8(p10Shifted)
+    println("K1: $k1")
+
+    // shift already shifted halves by 2
+    val leftShifted2 = twoLeftShift(leftShifted)
+    val rightShifted2 = twoLeftShift(rightShifted)
+
+    val p10Shifted2 = leftShifted2.append(rightShifted2)
+
+    val k2 = p8(p10Shifted2)
+    println("K2: $k2")
+
+
+    // Ciphering: 1
+    val round1 = des(plainTextBinary, k1, s0, s1, "r1")
+
+    // Ciphering: 2
+    val round2 = mutableListOf<MutableList<String>>()
+    for (item in round1) {
+        round2.add(des(StringBuilder(item), k2, s0, s1, "r2"))
+    }
+
+    val ipInverse = mutableListOf<String>()
+
+    for (item in round2) {
+        ipInverse.add(ipInverse(item[0]).toString())
+    }
+
+    var cipherTextBinary = ""
+
+    for (cipherText in ipInverse) {
+        cipherTextBinary += cipherText
+    }
+
+    println("Cipher text (Binary): $cipherTextBinary")
+    println("Cipher text (Hexadecimal): ${binaryToHex(cipherTextBinary)}")
+}
+
+fun des(plainTextBinary: StringBuilder, key: StringBuilder, s0: Array<Array<Int>>, s1: Array<Array<Int>>, type: String):
+        MutableList<String> {
+    val plainBlocs = dividePlainText(plainTextBinary.toString())
+    val ip8Blocs = mutableListOf<String>()
+
+    // apply ip8 on each 8-bit bloc
+    for (plainBloc in plainBlocs) {
+        ip8Blocs.add(ip8(plainBloc).toString())
+    }
+
+    // expansion of right halves
+    val rightHalvesExpanded = mutableListOf<StringBuilder>()
+
+    for (bloc in ip8Blocs) {
+        val dividedBloc = divideBloc(bloc)
+
+        // expansion
+        if (type == "r1") {
+            rightHalvesExpanded.add(expansion(dividedBloc[1]))
+        } else {
+            rightHalvesExpanded.add(expansion(divideBloc(plainTextBinary.toString())[1]))
+        }
+    }
+
+    // XOR expanded right halves with K1
+    val xorK1 = mutableListOf<StringBuilder>()
+
+    for (item in rightHalvesExpanded) {
+        xorK1.add(xor(item, key))
+    }
+
+    // XORed halves -> S-Boxes
+    val i = 0
+    val round1 = mutableListOf<String>()
+    for (item in xorK1) {
+        val dividedBloc = divideBloc(item.toString())
+
+        val l = dividedBloc[0]
+        val r = dividedBloc[1]
+
+        val s0Half = mapSbox(l.toString())
+        val s1Half = mapSbox(r.toString())
+
+        val sboxed = intToBin(s0[s0Half[0]][s0Half[1]]) + intToBin(s1[s1Half[0]][s1Half[1]])
+
+        // S-boxed -> p4
+        val p4 = p4(sboxed)
+
+        val xor: String = if (type == "r1") {
+            xor(p4, divideBloc(ip8Blocs[i])[0]).toString()
+        } else {
+            xor(p4, divideBloc(plainTextBinary.toString())[0]).toString()
+        }
+
+        // concatenation of xor and ip8 right nibble
+        val sw: String = if (type == "r1") {
+            divideBloc(ip8Blocs[i])[1].toString() + xor
+        } else {
+            xor + divideBloc(plainTextBinary.toString())[1]
+        }
+
+        round1.add(sw)
+    }
+
+    return round1
+}
+
 fun hexToBinary(hexNumber: String): String {
     val len = hexNumber.length
     var i = 0
@@ -273,157 +433,4 @@ fun binaryToHex(message: String): String {
     }
 
     return hexValue
-}
-
-fun des(plainTextBinary: StringBuilder, key: StringBuilder, s0: Array<Array<Int>>, s1: Array<Array<Int>>, type: String):
-        MutableList<String> {
-    val plainBlocs = dividePlainText(plainTextBinary.toString())
-    val ip8Blocs = mutableListOf<String>()
-
-    // apply ip8 on each 8-bit bloc
-    for (plainBloc in plainBlocs) {
-        ip8Blocs.add(ip8(plainBloc).toString())
-    }
-
-    // expansion of right halves
-    val rightHalvesExpanded = mutableListOf<StringBuilder>()
-
-    for (bloc in ip8Blocs) {
-        val dividedBloc = divideBloc(bloc)
-
-        // expansion
-        if (type == "r1") {
-            rightHalvesExpanded.add(expansion(dividedBloc[1]))
-        } else {
-            rightHalvesExpanded.add(expansion(divideBloc(plainTextBinary.toString())[1]))
-        }
-    }
-
-    // XOR expanded right halves with K1
-    val xorK1 = mutableListOf<StringBuilder>()
-
-    for (item in rightHalvesExpanded) {
-        xorK1.add(xor(item, key))
-    }
-
-    // XORed halves -> S-Boxes
-    val i = 0
-    val round1 = mutableListOf<String>()
-    for (item in xorK1) {
-        val dividedBloc = divideBloc(item.toString())
-
-        val l = dividedBloc[0]
-        val r = dividedBloc[1]
-
-        val s0Half = mapSbox(l.toString())
-        val s1Half = mapSbox(r.toString())
-
-        val sboxed = intToBin(s0[s0Half[0]][s0Half[1]]) + intToBin(s1[s1Half[0]][s1Half[1]])
-
-        // S-boxed -> p4
-        val p4 = p4(sboxed)
-
-        val xor: String = if (type == "r1") {
-            xor(p4, divideBloc(ip8Blocs[i])[0]).toString()
-        } else {
-            xor(p4, divideBloc(plainTextBinary.toString())[0]).toString()
-        }
-
-        // concatenation of xor and ip8 right nibble
-        val sw: String = if (type == "r1") {
-            divideBloc(ip8Blocs[i])[1].toString() + xor
-        } else {
-            xor + divideBloc(plainTextBinary.toString())[1]
-        }
-
-        round1.add(sw)
-    }
-
-    return round1
-}
-
-fun main() {
-    val s0 = arrayOf(
-        arrayOf(1, 0, 3, 2),
-        arrayOf(3, 2, 1, 0),
-        arrayOf(0, 2, 1, 3),
-        arrayOf(3, 1, 3, 2)
-    )
-
-    val s1 = arrayOf(
-        arrayOf(0, 1, 2, 3),
-        arrayOf(2, 0, 1, 3),
-        arrayOf(3, 0, 1, 0),
-        arrayOf(2, 1, 0, 3)
-    )
-
-    println("Plaintext message (Hex) > ")
-    val plainText = readlnOrNull()
-    val plainTextBinary = StringBuilder(hexToBinary(plainText!!))
-
-    if (plainTextBinary.length % 8 != 0) {
-        var i = 0
-
-        while (plainTextBinary.length % 8 != 0) {
-            plainTextBinary.append("0000")
-
-            i++
-        }
-    }
-
-    println("Encryption key (Binary) > ")
-    // 10-bit original key
-    val encKeyBinary = readlnOrNull()
-
-    // 10-bit -> p10
-    val p10 = p10(encKeyBinary!!)
-
-    // divide p10
-    val mainKeyHalves = divideMainKey(p10)
-    val l = mainKeyHalves[0]
-    val r = mainKeyHalves[1]
-
-    // shift halves by 1
-    val leftShifted = oneLeftShift(l)
-    val rightShifted = oneLeftShift(r)
-
-    val p10Shifted = leftShifted.append(rightShifted)
-
-    // shifted halves -> p8
-    val k1 = p8(p10Shifted)
-    println("K1: $k1")
-
-    // shift already shifted halves by 2
-    val leftShifted2 = twoLeftShift(leftShifted)
-    val rightShifted2 = twoLeftShift(rightShifted)
-
-    val p10Shifted2 = leftShifted2.append(rightShifted2)
-
-    val k2 = p8(p10Shifted2)
-    println("K2: $k2")
-
-
-    // Ciphering: 1
-    val round1 = des(plainTextBinary, k1, s0, s1, "r1")
-
-    // Ciphering: 2
-    val round2 = mutableListOf<MutableList<String>>()
-    for (item in round1) {
-        round2.add(des(StringBuilder(item), k2, s0, s1, "r2"))
-    }
-
-    val ipInverse = mutableListOf<String>()
-
-    for (item in round2) {
-        ipInverse.add(ipInverse(item[0]).toString())
-    }
-
-    var cipherTextBinary = ""
-
-    for (cipherText in ipInverse) {
-        cipherTextBinary += cipherText
-    }
-
-    println("Cipher text (Binary): $cipherTextBinary")
-    println("Cipher text (Hexadecimal): ${binaryToHex(cipherTextBinary)}")
 }
