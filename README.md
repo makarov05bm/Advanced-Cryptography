@@ -1,4 +1,4 @@
 # Advanced-Cryptography
 
 ## [1] Simplified DES
-> Run, enter the plaintext in hexadecimals (any length), then enter the encryption key in binary format (10 bits)
+> Encryption type: Bloc cipher, Key: 10 bits, Plaintext bloc: 8 bits
