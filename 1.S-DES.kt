@@ -1,5 +1,5 @@
 fun hexToBinary(hexNumber: String): String {
-    var len = hexNumber.length
+    val len = hexNumber.length
     var i = 0
 
     var binary = ""
@@ -36,8 +36,6 @@ fun dividePlainText(message: String): MutableList<String>  {
     var start = 0
     var end = 8
 
-    var tmp = StringBuilder("")
-
     while (end <= message.length+1) {
         blocs.add(message.substring(start, end))
 
@@ -49,7 +47,7 @@ fun dividePlainText(message: String): MutableList<String>  {
 }
 
 fun p10(key: String): StringBuilder {
-    var tmpKey = StringBuilder("0000000000")
+    val tmpKey = StringBuilder("0000000000")
 
     tmpKey.setCharAt(0, key[2])
     tmpKey.setCharAt(1, key[4])
@@ -66,7 +64,7 @@ fun p10(key: String): StringBuilder {
 }
 
 fun p8(key: StringBuilder): StringBuilder {
-    var tmpKey = StringBuilder("00000000")
+    val tmpKey = StringBuilder("00000000")
 
     tmpKey.setCharAt(0, key[5])
     tmpKey.setCharAt(1, key[2])
@@ -81,7 +79,7 @@ fun p8(key: StringBuilder): StringBuilder {
 }
 
 fun p4(key: String): StringBuilder {
-    var tmpKey = StringBuilder("0000")
+    val tmpKey = StringBuilder("0000")
 
     tmpKey.setCharAt(0, key[1])
     tmpKey.setCharAt(1, key[3])
@@ -92,7 +90,7 @@ fun p4(key: String): StringBuilder {
 }
 
 fun oneLeftShift(key: StringBuilder): StringBuilder {
-    var tmpKey = StringBuilder("00000")
+    val tmpKey = StringBuilder("00000")
 
     tmpKey.setCharAt(0, key[1])
     tmpKey.setCharAt(1, key[2])
@@ -104,7 +102,7 @@ fun oneLeftShift(key: StringBuilder): StringBuilder {
 }
 
 fun twoLeftShift(key: StringBuilder): StringBuilder {
-    var tmpKey = StringBuilder("00000")
+    val tmpKey = StringBuilder("00000")
 
     tmpKey.setCharAt(0, key[2])
     tmpKey.setCharAt(1, key[3])
@@ -118,8 +116,8 @@ fun twoLeftShift(key: StringBuilder): StringBuilder {
 fun divideMainKey(key: StringBuilder): MutableList<StringBuilder> {
     val halves = mutableListOf<StringBuilder>()
 
-    var l = StringBuilder(key.substring(0, 5))
-    var r = StringBuilder(key.substring(5, 10))
+    val l = StringBuilder(key.substring(0, 5))
+    val r = StringBuilder(key.substring(5, 10))
 
     halves.add(l)
     halves.add(r)
@@ -129,8 +127,8 @@ fun divideMainKey(key: StringBuilder): MutableList<StringBuilder> {
 fun divideBloc(key: String): MutableList<StringBuilder> {
     val halves = mutableListOf<StringBuilder>()
 
-    var l = StringBuilder(key.substring(0, 4))
-    var r = StringBuilder(key.substring(4, 8))
+    val l = StringBuilder(key.substring(0, 4))
+    val r = StringBuilder(key.substring(4, 8))
 
     halves.add(l)
     halves.add(r)
@@ -139,7 +137,7 @@ fun divideBloc(key: String): MutableList<StringBuilder> {
 }
 
 fun ip8(key: String): StringBuilder {
-    var tmpKey = StringBuilder("00000000")
+    val tmpKey = StringBuilder("00000000")
 
     tmpKey.setCharAt(0, key[1])
     tmpKey.setCharAt(1, key[5])
@@ -154,7 +152,7 @@ fun ip8(key: String): StringBuilder {
 }
 
 fun expansion(key: StringBuilder): StringBuilder {
-    var tmpKey = StringBuilder("00000000")
+    val tmpKey = StringBuilder("00000000")
 
     tmpKey.setCharAt(0, key[3])
     tmpKey.setCharAt(1, key[0])
@@ -172,7 +170,7 @@ fun xor(str1: StringBuilder, str2: StringBuilder): StringBuilder {
     val len = str1.length
     var i = 0
 
-    var xor = StringBuilder("")
+    val xor = StringBuilder("")
 
     while (i < len) {
         if ((str1[i] == '1' && str2[i] == '0') || (str2[i] == '1' && str1[i] == '0')) {
@@ -224,7 +222,7 @@ fun intToBin(num: Int): String {
 }
 
 fun ipInverse(key: String): StringBuilder {
-    var tmpKey = StringBuilder("00000000")
+    val tmpKey = StringBuilder("00000000")
 
     tmpKey.setCharAt(0, key[3])
     tmpKey.setCharAt(1, key[0])
@@ -309,7 +307,7 @@ fun des(plainTextBinary: StringBuilder, key: StringBuilder, s0: Array<Array<Int>
     }
 
     // XORed halves -> S-Boxes
-    var i = 0
+    val i = 0
     val round1 = mutableListOf<String>()
     for (item in xorK1) {
         val dividedBloc = divideBloc(item.toString())
@@ -324,18 +322,15 @@ fun des(plainTextBinary: StringBuilder, key: StringBuilder, s0: Array<Array<Int>
 
         // S-boxed -> p4
         val p4 = p4(sboxed)
-        var xor = ""
 
-        xor = if (type == "r1") {
+        val xor: String = if (type == "r1") {
             xor(p4, divideBloc(ip8Blocs[i])[0]).toString()
         } else {
             xor(p4, divideBloc(plainTextBinary.toString())[0]).toString()
         }
 
         // concatenation of xor and ip8 right nibble
-        var sw = ""
-
-        sw = if (type == "r1") {
+        val sw: String = if (type == "r1") {
             divideBloc(ip8Blocs[i])[1].toString() + xor
         } else {
             xor + divideBloc(plainTextBinary.toString())[1]
@@ -347,7 +342,7 @@ fun des(plainTextBinary: StringBuilder, key: StringBuilder, s0: Array<Array<Int>
     return round1
 }
 
-fun main(args: Array<String>) {
+fun main() {
     val s0 = arrayOf(
         arrayOf(1, 0, 3, 2),
         arrayOf(3, 2, 1, 0),
